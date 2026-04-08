@@ -1,0 +1,17 @@
+node_modules/
+.expo/
+web-build/
+eas-build-local-nodejs/
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+.cache/
+.env
+dist/
+build/
+*.exe
+*.dmp
+AppData/
+Mozilla/
+cache2/

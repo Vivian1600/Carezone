@@ -1,0 +1,18 @@
+{
+  "expo": {
+    "name": "CareZone",
+    "slug": "carezone-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/playstore.png",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": ["**/*"],
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/playstore.png",
+        "backgroundColor": "#2C7DA0"
+      },
+      "package": "com.carezone.app"
+    }
+  }
+}
