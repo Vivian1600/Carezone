@@ -4,23 +4,14 @@
     "slug": "carezone-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/playstore.png",
+    "icon": "./assets/playstore.png", 
     "userInterfaceStyle": "light",
-    "assetBundlePatterns": [
-      "**/*"
-    ],
     "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/playstore.png",
-        "backgroundColor": "#2C7DA0"
-      },
+       "adaptiveIcon": {              
+       "foregroundImage": "./assets/playstore.png",
+       "backgroundColor": "#2C7DA0"
+       },
       "package": "com.carezone.app"
-    },
-    "extra": {
-      "eas": {
-        "projectId": "cdae07fa-acd4-4232-a991-16b789776982"
-      }
-    },
-    "owner": "vee1600"
+    }
   }
 }
