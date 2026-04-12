@@ -48,6 +48,15 @@ const CaregiverDashboard = () => {
   const [submitting, setSubmitting] = useState(false);
   const [actionType, setActionType] = useState('accept');
 
+  // Patient Info Modal states
+  const [showPatientInfoModal, setShowPatientInfoModal] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState(null);
+  const [patientInfo, setPatientInfo] = useState(null);
+  const [patientNotes, setPatientNotes] = useState([]);
+  const [newNote, setNewNote] = useState('');
+  const [loadingPatientInfo, setLoadingPatientInfo] = useState(false);
+  const [addingNote, setAddingNote] = useState(false);
+
   const fetchUnreadCount = async () => {
     if (isOffline) return;
     try {
@@ -59,6 +68,77 @@ const CaregiverDashboard = () => {
     } catch (error) {
       console.error('Error fetching unread count:', error);
     }
+  };
+
+  // Fetch patient info and notes
+  const fetchPatientInfo = async (careRecipientId, patientName) => {
+    setLoadingPatientInfo(true);
+    setSelectedPatient({ id: careRecipientId, name: patientName });
+    setShowPatientInfoModal(true);
+    
+    try {
+      const infoResponse = await fetch(`${API_BASE_URL}/care-recipient/${careRecipientId}/info`, {
+        headers: { 'x-auth-token': token },
+      });
+      const infoData = await infoResponse.json();
+      
+      const notesResponse = await fetch(`${API_BASE_URL}/caregiver-notes/${careRecipientId}`, {
+        headers: { 'x-auth-token': token },
+      });
+      const notesData = await notesResponse.json();
+      
+      if (infoData.success) setPatientInfo(infoData.data);
+      if (notesData.success) setPatientNotes(notesData.data || []);
+      
+    } catch (error) {
+      console.error('Error fetching patient info:', error);
+      Alert.alert('Error', 'Failed to load patient information');
+    } finally {
+      setLoadingPatientInfo(false);
+    }
+  };
+
+  // Add a new note
+  const addPatientNote = async () => {
+    if (!newNote.trim()) {
+      Alert.alert('Error', 'Please enter a note');
+      return;
+    }
+    
+    setAddingNote(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/caregiver-notes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-auth-token': token },
+        body: JSON.stringify({
+          care_recipient_id: selectedPatient.id,
+          note: newNote
+        }),
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        setPatientNotes([data.note, ...patientNotes]);
+        setNewNote('');
+        Alert.alert('Success', 'Note added successfully');
+      } else {
+        Alert.alert('Error', data.message || 'Failed to add note');
+      }
+    } catch (error) {
+      console.error('Error adding note:', error);
+      Alert.alert('Error', 'Network error');
+    } finally {
+      setAddingNote(false);
+    }
+  };
+
+  const formatDisplayDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
   };
 
   useEffect(() => {
@@ -422,6 +502,7 @@ const CaregiverDashboard = () => {
           </Card>
         )}
 
+        {/* Today's Visits with Info Button */}
         <Card style={styles.card}>
           <SectionHeader
             title="Today's Visits"
@@ -433,14 +514,24 @@ const CaregiverDashboard = () => {
             <View style={styles.cardContent}>
               {todayVisits.length > 0 ? (
                 todayVisits.map((visit) => (
-                  <TouchableOpacity key={visit.visit_id} style={styles.visitItem} onPress={() => navigation.navigate('VisitDetails', { visitId: visit.visit_id, patientName: visit.care_recipient_name })}>
+                  <View key={visit.visit_id} style={styles.visitItem}>
                     <View style={styles.visitHeader}>
-                      <View>
+                      <View style={styles.visitHeaderLeft}>
                         <Text style={styles.visitPatient}>{visit.care_recipient_name}</Text>
                         <Text style={styles.visitTime}>{formatTime(visit.scheduled_time)}</Text>
                       </View>
-                      <View style={[styles.statusBadge, { backgroundColor: getStatusColor(visit.status) + '20' }]}>
-                        <Text style={[styles.statusText, { color: getStatusColor(visit.status) }]}>{visit.status?.toUpperCase()}</Text>
+                      <View style={styles.visitHeaderRight}>
+                        <TouchableOpacity 
+                          style={styles.infoButton}
+                          onPress={() => fetchPatientInfo(visit.care_recipient_id, visit.care_recipient_name)}
+                        >
+                          <Ionicons name="information-circle-outline" size={24} color="#2C7DA0" />
+                        </TouchableOpacity>
+                        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(visit.status) + '20' }]}>
+                          <Text style={[styles.statusText, { color: getStatusColor(visit.status) }]}>
+                            {visit.status?.toUpperCase()}
+                          </Text>
+                        </View>
                       </View>
                     </View>
                     {visit.notes && (
@@ -449,7 +540,13 @@ const CaregiverDashboard = () => {
                         <Text style={{ marginLeft: 4 }}>{visit.notes}</Text>
                       </View>
                     )}
-                  </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={styles.viewDetailsButton}
+                      onPress={() => navigation.navigate('VisitDetails', { visitId: visit.visit_id, patientName: visit.care_recipient_name })}
+                    >
+                      <Text style={styles.viewDetailsText}>View Details →</Text>
+                    </TouchableOpacity>
+                  </View>
                 ))
               ) : (
                 <Text style={styles.emptyText}>No visits scheduled for today</Text>
@@ -458,6 +555,7 @@ const CaregiverDashboard = () => {
           )}
         </Card>
 
+        {/* Upcoming Visits with Info Button */}
         <Card style={styles.card}>
           <SectionHeader
             title="Upcoming Visits"
@@ -469,14 +567,24 @@ const CaregiverDashboard = () => {
             <View style={styles.cardContent}>
               {upcomingVisits.length > 0 ? (
                 upcomingVisits.map((visit) => (
-                  <TouchableOpacity key={visit.visit_id} style={styles.visitItem} onPress={() => navigation.navigate('VisitDetails', { visitId: visit.visit_id, patientName: visit.care_recipient_name })}>
+                  <View key={visit.visit_id} style={styles.visitItem}>
                     <View style={styles.visitHeader}>
-                      <View>
+                      <View style={styles.visitHeaderLeft}>
                         <Text style={styles.visitPatient}>{visit.care_recipient_name}</Text>
                         <Text style={styles.visitTime}>{formatDate(visit.scheduled_time)} at {formatTime(visit.scheduled_time)}</Text>
                       </View>
-                      <View style={[styles.statusBadge, { backgroundColor: getStatusColor(visit.status) + '20' }]}>
-                        <Text style={[styles.statusText, { color: getStatusColor(visit.status) }]}>{visit.status?.toUpperCase()}</Text>
+                      <View style={styles.visitHeaderRight}>
+                        <TouchableOpacity 
+                          style={styles.infoButton}
+                          onPress={() => fetchPatientInfo(visit.care_recipient_id, visit.care_recipient_name)}
+                        >
+                          <Ionicons name="information-circle-outline" size={24} color="#2C7DA0" />
+                        </TouchableOpacity>
+                        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(visit.status) + '20' }]}>
+                          <Text style={[styles.statusText, { color: getStatusColor(visit.status) }]}>
+                            {visit.status?.toUpperCase()}
+                          </Text>
+                        </View>
                       </View>
                     </View>
                     {visit.notes && (
@@ -485,7 +593,13 @@ const CaregiverDashboard = () => {
                         <Text style={{ marginLeft: 4 }}>{visit.notes}</Text>
                       </View>
                     )}
-                  </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={styles.viewDetailsButton}
+                      onPress={() => navigation.navigate('VisitDetails', { visitId: visit.visit_id, patientName: visit.care_recipient_name })}
+                    >
+                      <Text style={styles.viewDetailsText}>View Details →</Text>
+                    </TouchableOpacity>
+                  </View>
                 ))
               ) : (
                 <Text style={styles.emptyText}>No upcoming visits</Text>
@@ -524,6 +638,7 @@ const CaregiverDashboard = () => {
         )}
       </ScrollView>
 
+      {/* Acknowledge Modal */}
       <Modal visible={showAcknowledgeModal} animationType="slide" transparent={true} onRequestClose={() => setShowAcknowledgeModal(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -573,6 +688,173 @@ const CaregiverDashboard = () => {
           </View>
         </View>
       </Modal>
+
+      {/* Patient Info Modal */}
+      <Modal
+        visible={showPatientInfoModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowPatientInfoModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, styles.patientInfoModalContent]}>
+            <LinearGradient
+              colors={['#2C7DA0', '#61A5C2']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.modalHeaderGradient}
+            >
+              <Text style={styles.modalHeaderTitle}>Patient Information</Text>
+              <TouchableOpacity onPress={() => setShowPatientInfoModal(false)}>
+                <Ionicons name="close" size={24} color="#fff" />
+              </TouchableOpacity>
+            </LinearGradient>
+
+            <ScrollView style={styles.patientInfoBody} showsVerticalScrollIndicator={false}>
+              {loadingPatientInfo ? (
+                <ActivityIndicator size="large" color="#2C7DA0" style={{ marginTop: 40 }} />
+              ) : (
+                <>
+                  <Text style={styles.patientNameTitle}>{selectedPatient?.name}</Text>
+
+                  {/* Medical Conditions */}
+                  <View style={styles.infoSection}>
+                    <View style={styles.infoSectionHeader}>
+                      <FontAwesome5 name="stethoscope" size={18} color="#2C7DA0" />
+                      <Text style={styles.infoSectionTitle}> Medical Conditions</Text>
+                    </View>
+                    {patientInfo?.conditions?.length > 0 ? (
+                      patientInfo.conditions.map((condition, idx) => (
+                        <View key={idx} style={styles.conditionItem}>
+                          <Text style={styles.conditionName}>{condition.condition_name}</Text>
+                          {condition.description && (
+                            <Text style={styles.conditionDesc}>{condition.description}</Text>
+                          )}
+                        </View>
+                      ))
+                    ) : (
+                      <Text style={styles.noDataText}>No medical conditions recorded</Text>
+                    )}
+                  </View>
+
+                  {/* Current Medications */}
+                  <View style={styles.infoSection}>
+                    <View style={styles.infoSectionHeader}>
+                      <MaterialIcons name="medication" size={18} color="#2C7DA0" />
+                      <Text style={styles.infoSectionTitle}> Current Medications</Text>
+                    </View>
+                    {patientInfo?.medications?.length > 0 ? (
+                      patientInfo.medications.map((med, idx) => (
+                        <View key={idx} style={styles.medicationItem}>
+                          <Text style={styles.medicationName}>{med.name}</Text>
+                          <Text style={styles.medicationDetail}>{med.dosage} - {med.frequency}</Text>
+                          {med.instructions && (
+                            <Text style={styles.medicationInstruction}>📌 {med.instructions}</Text>
+                          )}
+                        </View>
+                      ))
+                    ) : (
+                      <Text style={styles.noDataText}>No active medications</Text>
+                    )}
+                  </View>
+
+                  {/* Emergency Contact */}
+                  <View style={styles.infoSection}>
+                    <View style={styles.infoSectionHeader}>
+                      <Ionicons name="call-outline" size={18} color="#2C7DA0" />
+                      <Text style={styles.infoSectionTitle}> Emergency Contact</Text>
+                    </View>
+                    <Text style={styles.emergencyName}>
+                      {patientInfo?.emergency_contact_name || 'Not provided'}
+                    </Text>
+                    <Text style={styles.emergencyPhone}>
+                      {patientInfo?.emergency_contact_phone || 'Not provided'}
+                    </Text>
+                  </View>
+
+                  {/* Special Instructions */}
+                  {patientInfo?.special_instructions && (
+                    <View style={styles.infoSection}>
+                      <View style={styles.infoSectionHeader}>
+                        <Ionicons name="alert-circle-outline" size={18} color="#FF9800" />
+                        <Text style={styles.infoSectionTitle}> Special Instructions</Text>
+                      </View>
+                      <Text style={styles.specialInstructions}>{patientInfo.special_instructions}</Text>
+                    </View>
+                  )}
+
+                  {/* Recent Visit Notes */}
+                  <View style={styles.infoSection}>
+                    <View style={styles.infoSectionHeader}>
+                      <Ionicons name="document-text-outline" size={18} color="#2C7DA0" />
+                      <Text style={styles.infoSectionTitle}> Recent Visit Notes</Text>
+                    </View>
+                    {patientInfo?.recent_visits?.length > 0 ? (
+                      patientInfo.recent_visits.map((visit, idx) => (
+                        <View key={idx} style={styles.recentVisitItem}>
+                          <Text style={styles.recentVisitDate}>{formatDisplayDate(visit.date)}</Text>
+                          <Text style={styles.recentVisitCaregiver}>Caregiver: {visit.caregiver_name}</Text>
+                          {visit.notes && (
+                            <Text style={styles.recentVisitNote}>📝 {visit.notes}</Text>
+                          )}
+                        </View>
+                      ))
+                    ) : (
+                      <Text style={styles.noDataText}>No recent visit notes</Text>
+                    )}
+                  </View>
+
+                  {/* Caregiver Notes Section */}
+                  <View style={styles.infoSection}>
+                    <View style={styles.infoSectionHeader}>
+                      <Ionicons name="create-outline" size={18} color="#2C7DA0" />
+                      <Text style={styles.infoSectionTitle}> My Notes</Text>
+                    </View>
+                    
+                    <View style={styles.addNoteContainer}>
+                      <TextInput
+                        style={styles.noteInput}
+                        placeholder="Add a note about this patient..."
+                        placeholderTextColor="#A9D6E5"
+                        value={newNote}
+                        onChangeText={setNewNote}
+                        multiline
+                      />
+                      <TouchableOpacity 
+                        style={styles.addNoteButton}
+                        onPress={addPatientNote}
+                        disabled={addingNote}
+                      >
+                        <LinearGradient
+                          colors={['#2C7DA0', '#61A5C2']}
+                          style={styles.addNoteGradient}
+                        >
+                          {addingNote ? (
+                            <ActivityIndicator size="small" color="#fff" />
+                          ) : (
+                            <Text style={styles.addNoteButtonText}>Add Note</Text>
+                          )}
+                        </LinearGradient>
+                      </TouchableOpacity>
+                    </View>
+
+                    {patientNotes.length > 0 ? (
+                      patientNotes.map((note, idx) => (
+                        <View key={idx} style={styles.noteItem}>
+                          <Text style={styles.noteDate}>{formatDisplayDate(note.created_at)}</Text>
+                          <Text style={styles.noteText}>{note.note}</Text>
+                        </View>
+                      ))
+                    ) : (
+                      <Text style={styles.noDataText}>No notes added yet</Text>
+                    )}
+                  </View>
+                </>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </>
   );
 };
@@ -614,8 +896,13 @@ const styles = StyleSheet.create({
   declineButtonText: { color: '#fff', fontSize: 14, fontWeight: '600', marginLeft: 4 },
   visitItem: { borderBottomWidth: 1, borderBottomColor: '#E8EEF2', paddingVertical: 12 },
   visitHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 },
+  visitHeaderLeft: { flex: 1 },
+  visitHeaderRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   visitPatient: { fontSize: 16, fontWeight: '500', color: '#1A2C3E' },
   visitTime: { fontSize: 13, color: '#4A627A', marginTop: 2 },
+  infoButton: { padding: 4 },
+  viewDetailsButton: { marginTop: 8, alignSelf: 'flex-start' },
+  viewDetailsText: { fontSize: 13, color: '#2C7DA0', fontWeight: '500' },
   visitAddress: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
   visitNotes: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
@@ -638,6 +925,38 @@ const styles = StyleSheet.create({
   declineModalButton: { backgroundColor: '#F44336' },
   modalSubmitButtonDisabled: { opacity: 0.6 },
   modalSubmitButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  // Patient Info Modal Styles
+  patientInfoModalContent: { maxHeight: '90%' },
+  modalHeaderGradient: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderTopLeftRadius: 24, borderTopRightRadius: 24 },
+  modalHeaderTitle: { fontSize: 18, fontWeight: '600', color: '#fff' },
+  patientInfoBody: { padding: 20 },
+  patientNameTitle: { fontSize: 24, fontWeight: 'bold', color: '#1A2C3E', textAlign: 'center', marginBottom: 20 },
+  infoSection: { marginBottom: 24, borderBottomWidth: 1, borderBottomColor: '#E8EEF2', paddingBottom: 16 },
+  infoSectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  infoSectionTitle: { fontSize: 16, fontWeight: '600', color: '#1A2C3E', marginLeft: 8 },
+  conditionItem: { marginBottom: 8, paddingLeft: 8, borderLeftWidth: 3, borderLeftColor: '#2C7DA0' },
+  conditionName: { fontSize: 14, fontWeight: '500', color: '#1A2C3E' },
+  conditionDesc: { fontSize: 12, color: '#4A627A', marginTop: 2 },
+  medicationItem: { marginBottom: 10, paddingLeft: 8, borderLeftWidth: 3, borderLeftColor: '#61A5C2' },
+  medicationName: { fontSize: 14, fontWeight: '500', color: '#1A2C3E' },
+  medicationDetail: { fontSize: 12, color: '#4A627A' },
+  medicationInstruction: { fontSize: 11, color: '#2C7DA0', marginTop: 2 },
+  emergencyName: { fontSize: 14, color: '#1A2C3E', fontWeight: '500', marginBottom: 4 },
+  emergencyPhone: { fontSize: 13, color: '#2C7DA0' },
+  specialInstructions: { fontSize: 13, color: '#FF9800', backgroundColor: '#FFF3E0', padding: 10, borderRadius: 8 },
+  recentVisitItem: { marginBottom: 12, padding: 10, backgroundColor: '#F8FAFE', borderRadius: 8 },
+  recentVisitDate: { fontSize: 12, fontWeight: '600', color: '#2C7DA0', marginBottom: 4 },
+  recentVisitCaregiver: { fontSize: 11, color: '#4A627A', marginBottom: 2 },
+  recentVisitNote: { fontSize: 12, color: '#4A627A', fontStyle: 'italic' },
+  addNoteContainer: { marginBottom: 16 },
+  noteInput: { borderWidth: 1, borderColor: '#E8EEF2', borderRadius: 12, padding: 12, fontSize: 14, backgroundColor: '#FFFFFF', color: '#1A2C3E', minHeight: 70, textAlignVertical: 'top', marginBottom: 10 },
+  addNoteButton: { borderRadius: 12, overflow: 'hidden' },
+  addNoteGradient: { paddingVertical: 10, alignItems: 'center' },
+  addNoteButtonText: { color: '#fff', fontSize: 14, fontWeight: '600' },
+  noteItem: { backgroundColor: '#F8FAFE', padding: 12, borderRadius: 8, marginBottom: 10, borderWidth: 1, borderColor: '#E8EEF2' },
+  noteDate: { fontSize: 10, color: '#A9D6E5', marginBottom: 4 },
+  noteText: { fontSize: 13, color: '#1A2C3E' },
+  noDataText: { fontSize: 13, color: '#4A627A', fontStyle: 'italic', paddingLeft: 8, textAlign: 'center', padding: 20 },
 });
 
 export default CaregiverDashboard;
