@@ -18,7 +18,7 @@ import { useDarkMode } from '../context/DarkModeContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 
-import { API_BASE_URL } from '../config';
+const API_BASE_URL = 'http://192.168.1.117:5000/api';
 
 const RegisterScreen = () => {
   const navigation = useNavigation();
