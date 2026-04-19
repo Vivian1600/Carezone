@@ -1,13 +1,13 @@
 // config.js
 import { Platform } from 'react-native';
 
-// Your laptop's IP address from ipconfig
-const LAPTOP_IP = '192.168.1.117';
+// Use computer name (never changes) instead of IP
+const COMPUTER_NAME = 'PC';  // from hostname command
 
 const getApiUrl = () => {
-  // For Android APK on real device (use laptop IP)
+  // For Android APK on real device (use computer name)
   if (Platform.OS === 'android' && !__DEV__) {
-    return `http://${LAPTOP_IP}:5000/api`;
+    return `http://${COMPUTER_NAME}:5000/api`;
   }
   
   // For Android emulator
@@ -26,7 +26,7 @@ const getApiUrl = () => {
   }
   
   // Default
-  return `http://${LAPTOP_IP}:5000/api`;
+  return `http://${COMPUTER_NAME}:5000/api`;
 };
 
 export const API_BASE_URL = getApiUrl();
