@@ -14,7 +14,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 import { useDarkMode } from '../context/DarkModeContext';
 
-const API_BASE_URL = 'http://192.168.1.117:5000/api';
+const API_BASE_URL = 'http://PC:5000/api';
 // for web enulator use http://localhost:5000/api// for android emulator use http://ip adress of your machine:5000/api//
 
 

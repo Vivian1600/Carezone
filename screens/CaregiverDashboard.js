@@ -21,7 +21,7 @@ import { useDarkMode } from '../context/DarkModeContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialIcons, FontAwesome5, Feather } from '@expo/vector-icons';
 
-const API_BASE_URL = 'http://192.168.1.117:5000/api';
+const API_BASE_URL = 'http://PC:5000/api';
 
 const CaregiverDashboard = () => {
   const { user, token, logout } = useAuth();
