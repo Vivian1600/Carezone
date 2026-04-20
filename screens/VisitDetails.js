@@ -20,7 +20,7 @@ import { useDarkMode } from '../context/DarkModeContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
 
-const API_BASE_URL = 'http://PC:5000/api';
+import { API_BASE_URL } from '../config';
 
 const VisitDetails = () => {
   const { token } = useAuth();

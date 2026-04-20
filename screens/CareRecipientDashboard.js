@@ -17,7 +17,7 @@ import NetInfo from '@react-native-community/netinfo';
 import { useDarkMode } from '../context/DarkModeContext';
 import { LinearGradient } from 'expo-linear-gradient';
 
-const API_BASE_URL = 'http://PC:5000/api';
+import { API_BASE_URL } from '../config';
 
 const CareRecipientDashboard = () => {
   const { user, token, logout } = useAuth();

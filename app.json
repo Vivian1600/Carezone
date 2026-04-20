@@ -4,19 +4,36 @@
     "slug": "carezone-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/playstore.png",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#2C7DA0"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.carezone.app"
+    },
     "android": {
+      "package": "com.carezone.app",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/playstore.png",
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#2C7DA0"
       },
-      "package": "com.carezone.app"
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.INTERNET"
+      ],
+      "usesCleartextTraffic": true
     },
-    "extra": {
-      "eas": {
-        "projectId": "cdae07fa-acd4-4232-a991-16b789776982"
-      }
+    "web": {
+      "favicon": "./assets/favicon.png"
+    }
+    
     }
   }
-}

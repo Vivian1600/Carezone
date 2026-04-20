@@ -1,13 +1,13 @@
 // config.js
 import { Platform } from 'react-native';
 
-// Use computer name (never changes) instead of IP
-const COMPUTER_NAME = 'PC';  // from hostname command
+// Ngrok URL (public, works anywhere)
+const NGROK_URL = 'https://sensitometrically-wackiest-reita.ngrok-free.dev';
 
 const getApiUrl = () => {
-  // For Android APK on real device (use computer name)
+  // For Android APK on real device - USE NGORK URL
   if (Platform.OS === 'android' && !__DEV__) {
-    return `http://${COMPUTER_NAME}:5000/api`;
+    return `${NGROK_URL}/api`;
   }
   
   // For Android emulator
@@ -25,8 +25,8 @@ const getApiUrl = () => {
     return 'http://localhost:5000/api';
   }
   
-  // Default
-  return `http://${COMPUTER_NAME}:5000/api`;
+  // Default fallback
+  return `${NGROK_URL}/api`;
 };
 
 export const API_BASE_URL = getApiUrl();
